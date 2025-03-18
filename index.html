@@ -24,147 +24,271 @@
             border: none;
             font-size: 16px;
         }
+        dialog {
+            border: none;
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0px 4px 6px rgba(0, 0, 0, 0.1);
+        }
     </style>
 </head>
 
 <body>
     <h2>Evidenční systém výměníků</h2>
 
-    <button onclick="addCustomer()">Přidat zákazníka</button>
+    <button onclick="showCustomerDialog()">Přidat zákazníka</button>
     <button onclick="loadCustomers()">Načíst zákazníky</button>
 
+    <table>
+        <thead>
+            <tr>
+                <th>Název firmy</th>
+                <th>Město</th>
+                <th>Ulice</th>
+                <th>IČO</th>
+                <th>Kontakt</th>
+                <th>Telefon</th>
+                <th>Email</th>
+                <th>Výměníky</th> <!-- Nový sloupec pro výměníky -->
+            </tr>
+        </thead>
+        <tbody id="customersTableBody"></tbody>
+    </table>
 
-<script type="module">
-    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
-    import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js";
+    <!-- Dialogové okno pro přidání zákazníka -->
+    <dialog id="customerDialog">
+        <h3>Přidat zákazníka</h3>
+        <form id="customerForm">
+            <label>Název firmy: <input type="text" id="name" required></label><br>
+            <label>Město: <input type="text" id="city" required></label><br>
+            <label>Ulice: <input type="text" id="street" required></label><br>
+            <label>IČO: <input type="text" id="ico" required></label><br>
+            <label>Kontakt: <input type="text" id="contact" required></label><br>
+            <label>Telefon: <input type="text" id="phone" required></label><br>
+            <label>Email: <input type="email" id="email" required></label><br><br>
+            <button type="submit">Uložit</button>
+            <button type="button" onclick="closeCustomerDialog()">Zrušit</button>
+        </form>
+    </dialog>
 
-    const firebaseConfig = {
-        apiKey: "AIzaSyD6KR6-j_ouZz9pZ7X1hbKDPpBYanP6qUs",
-        authDomain: "test3-a06c4.firebaseapp.com",
-        projectId: "test3-a06c4",
-        storageBucket: "test3-a06c4.appspot.com",
-        messagingSenderId: "982762948421",
-        appId: "1:982762948421:web:56e67c73d435c0e00fa02c"
-    };
+    <!-- Dialog pro přidání výměníku -->
+    <dialog id="exchangerDialog">
+        <h3>Přidat výměník</h3>
+        <form id="exchangerForm">
+            <label>ID výměníku: <input type="text" id="exchangerId" required></label><br>
+            <label>Typ výměníku: <input type="text" id="exchangerType" required></label><br>
+            <label>Kapacita: <input type="number" id="exchangerCapacity" required></label><br><br>
+            <button type="submit">Uložit</button>
+            <button type="button" onclick="closeExchangerDialog()">Zrušit</button>
+        </form>
+    </dialog>
 
-    const app = initializeApp(firebaseConfig);
-    const db = getFirestore(app);
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js";  
 
-    // ✅ Přiřazení funkcí k window pro použití v onclick
-    window.addCustomer = async function() {
-        try {
-            const docRef = await addDoc(collection(db, "customers"), {
-                name: "Firma C",
-                city: "Ostrava",
-                street: "Nádražní 45",
-                ico: "87654321",
-                contact: "Marek Dvořák",
-                phone: "+420 777 888 999",
-                email: "dvorak@firmac.cz"
+        const firebaseConfig = {
+            apiKey: "AIzaSyD6KR6-j_ouZz9pZ7X1hbKDPpBYanP6qUs",
+            authDomain: "test3-a06c4.firebaseapp.com",
+            projectId: "test3-a06c4",
+            storageBucket: "test3-a06c4.appspot.com",
+            messagingSenderId: "982762948421",
+            appId: "1:982762948421:web:56e67c73d435c0e00fa02c"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // 📌 Otevření dialogu
+        window.showCustomerDialog = function() {
+            document.getElementById("customerDialog").showModal();
+        };
+
+        // 📌 Zavření dialogu
+        window.closeCustomerDialog = function() {
+            document.getElementById("customerDialog").close();
+        };
+
+        // 📌 Přidání zákazníka do Firestore
+        window.addCustomer = async function(event) {
+            event.preventDefault(); // Zabrání přesměrování formuláře
+
+            try {
+                const docRef = await addDoc(collection(db, "customers"), {
+                    name: document.getElementById("name").value,
+                    city: document.getElementById("city").value,
+                    street: document.getElementById("street").value,
+                    ico: document.getElementById("ico").value,
+                    contact: document.getElementById("contact").value,
+                    phone: document.getElementById("phone").value,
+                    email: document.getElementById("email").value
+                });
+
+                console.log("Zákazník přidán s ID:", docRef.id);
+                closeCustomerDialog();
+                loadCustomers(); // Po přidání znovu načíst seznam
+            } catch (e) {
+                console.error("Chyba při přidávání:", e);
+            }
+        };
+
+        // 📌 Funkce pro načítání zákazníků z Firestore
+        window.loadCustomers = async function() {
+            let tableBody = document.getElementById("customersTableBody");
+
+            if (!tableBody) {
+                console.error("Chyba: Element customersTableBody neexistuje!");
+                return;
+            }
+
+            tableBody.innerHTML = ""; // Vyčistí tabulku
+
+            const querySnapshot = await getDocs(collection(db, "customers"));
+            
+            querySnapshot.forEach((doc) => {
+                let data = doc.data();
+                let row = `<tr>
+                    <td>${data.name}</td>
+                    <td>${data.city}</td>
+                    <td>${data.street}</td>
+                    <td>${data.ico}</td>
+                    <td>${data.contact}</td>
+                    <td>${data.phone}</td>
+                    <td>${data.email}</td>
+                </tr>`;
+                tableBody.innerHTML += row;
             });
-            console.log("Zákazník přidán s ID:", docRef.id);
-        } catch (e) {
-            console.error("Chyba při přidávání:", e);
-        }
-    };
+        };
 
-    window.loadCustomers = async function() {
-        const querySnapshot = await getDocs(collection(db, "customers"));
-        let tableBody = document.getElementById("customersTableBody");
-        tableBody.innerHTML = ""; // Vyčistí tabulku
+        // 📌 Připojení formuláře k funkci `addCustomer`
+        document.getElementById("customerForm").addEventListener("submit", addCustomer);
 
-        querySnapshot.forEach((doc) => {
-            let data = doc.data();
-            let row = `<tr>
-                <td>${data.name}</td>
-                <td>${data.city}</td>
-                <td>${data.street}</td>
-                <td>${data.ico}</td>
-                <td>${data.contact}</td>
-                <td>${data.phone}</td>
-                <td>${data.email}</td>
-            </tr>`;
-            tableBody.innerHTML += row;
-        });
-    };
-</script>
+        // 📌 Automaticky načíst zákazníky při startu
+        window.onload = function() {
+            loadCustomers();
+        };
 
-
-    <script>
-        // ✅ Přidání funkce pro rozbalení výměníků
-        function toggleExchangers(id) {
+        // Funkce pro zobrazení a skrytí výměníků (globální dostupnost)
+        window.toggleExchangers = function(id) {
             let row = document.getElementById(id);
             if (row.style.display === "none") {
                 row.style.display = "table-row";
             } else {
                 row.style.display = "none";
             }
+        };
+
+        // Funkce pro načítání výměníků pro zákazníka (globální dostupnost)
+        window.loadExchangers = function(customerId) {
+            let exchangersTable = document.getElementById(`exchangers-${customerId}`);
+            exchangersTable.innerHTML = ""; // Vyčistit tabulku výměníků
+
+            // Načítání výměníků – simulace
+            for (let i = 0; i < 3; i++) {  // Příklad: 3 výměníky
+                let row = `<tr>
+                    <td>Výměník ${i + 1}</td>
+                    <td>Typ ${i + 1}</td>
+                    <td>Kapacita ${i + 1}</td>
+                </tr>`;
+                exchangersTable.innerHTML += row;
+            }
+
+            // Přidání prázdného řádku pro přidání výměníku
+            let addRow = `<tr>
+                <td colspan="3" style="text-align:center;">
+                    <button class="toggle-btn" onclick="showExchangerDialog()">+ Přidat výměník</button>
+                </td>
+            </tr>`;
+            exchangersTable.innerHTML += addRow;
+        };
+
+        // Funkce pro otevření dialogu pro přidání výměníku (globální dostupnost)
+        window.showExchangerDialog = function() {
+            document.getElementById("exchangerDialog").showModal();
+        };
+
+        // Funkce pro zavření dialogu pro přidání výměníku (globální dostupnost)
+        window.closeExchangerDialog = function() {
+            document.getElementById("exchangerDialog").close();
+        };
+
+        // Funkce pro přidání výměníku (globální dostupnost)
+        window.addExchanger = async function(event) {
+            event.preventDefault(); // Zabránit přesměrování formuláře
+
+            try {
+                // Uložení výměníku do Firestore (budete muset připojit k Firestore podobně jako pro zákazníky)
+                const docRef = await addDoc(collection(db, "exchangers"), {
+                    id: document.getElementById("exchangerId").value,
+                    type: document.getElementById("exchangerType").value,
+                    capacity: document.getElementById("exchangerCapacity").value
+                });
+
+                console.log("Výměník přidán s ID:", docRef.id);
+                closeExchangerDialog();
+                loadExchangers(); // Načíst výměníky znovu po přidání
+            } catch (e) {
+                console.error("Chyba při přidávání výměníku:", e);
+            }
+        };
+
+// Připojení formuláře pro výměník k funkci addExchanger (globální dostupnost)
+document.getElementById("exchangerForm").addEventListener("submit", addExchanger);
+
+
+
+        // Funkce pro načítání zákazníků a jejich výměníků
+        async function loadCustomers() {
+            let tableBody = document.getElementById("customersTableBody");
+
+            if (!tableBody) {
+                console.error("Chyba: Element customersTableBody neexistuje!");
+                return;
+            }
+
+            tableBody.innerHTML = ""; // Vyčistit tabulku
+
+            const querySnapshot = await getDocs(collection(db, "customers"));
+    
+            querySnapshot.forEach((doc) => {
+                let data = doc.data();
+                let customerId = doc.id; // Získat ID zákazníka pro zobrazení výměníků
+
+                let row = `<tr>
+                    <td>${data.name}</td>
+                    <td>${data.city}</td>
+                    <td>${data.street}</td>
+                    <td>${data.ico}</td>
+                    <td>${data.contact}</td>
+                    <td>${data.phone}</td>
+                    <td>${data.email}</td>
+                    <td>
+                        <button class="toggle-btn" onclick="toggleExchangers('exchangers-${customerId}')">&#9660;</button>
+                    </td>
+                </tr>`;
+        
+                // Přidat zákazníka do tabulky
+                tableBody.innerHTML += row;
+
+                // Přidat seznam výměníků pro zákazníka
+                let exchangersRow = `<tr id="exchangers-${customerId}" style="display:none;">
+                    <td colspan="8">
+                        <table>
+                            <thead>
+                                <tr><th>Výměník</th><th>Typ</th><th>Kapacita</th></tr>
+                            </thead>
+                            <tbody id="exchangers-${customerId}"></tbody>
+                        </table>
+                    </td>
+                </tr>`;
+                tableBody.innerHTML += exchangersRow;
+
+                // Načíst výměníky pro tohoto zákazníka
+                loadExchangers(customerId);
+            });
         }
+        
     </script>
 
-    <table>
-        <thead>
-            <tr>
-                <th></th>
-                <th>Číslo</th>
-                <th>Název firmy</th>
-                <th>Město</th>
-                <th>Ulice</th>
-                <th>IČO</th>
-                <th>Kontaktní osoba</th>
-                <th>Telefon</th>
-                <th>E-mail</th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td><button class="toggle-btn" onclick="toggleExchangers('exchangers1')">&#9660;</button></td>
-                <td>1</td>
-                <td>Firma A</td>
-                <td>Praha</td>
-                <td>Hlavní 123</td>
-                <td>12345678</td>
-                <td>Jan Novák</td>
-                <td>+420 123 456 789</td>
-                <td>novak@firma.cz</td>
-            </tr>
-            <tr id="exchangers1" style="display: none;">
-                <td colspan="9">
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Registrační číslo</th>
-                                <th>Výrobce</th>
-                                <th>Typ výměníku</th>
-                                <th>Výrobní číslo</th>
-                                <th>Datum výroby</th>
-                                <th>Teplonosná látka</th>
-                                <th>Poloha</th>
-                                <th>Interval kontroly</th>
-                                <th>Datum poslední kontroly</th>
-                                <th>Datum plánované kontroly</th>
-                                <th>QR kód</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>VX-001</td>
-                                <td>Alfa Laval</td>
-                                <td>Pájený</td>
-                                <td>123456789</td>
-                                <td>01.01.2020</td>
-                                <td>Voda</td>
-                                <td>Strojovna 1</td>
-                                <td>1 rok</td>
-                                <td>01.01.2023</td>
-                                <td>01.01.2024</td>
-                                <td><a href="#">📷</a></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </td>
-            </tr>
-        </tbody>
-    </table>
 </body>
 </html>
