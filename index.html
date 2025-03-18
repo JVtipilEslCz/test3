@@ -36,7 +36,7 @@
             customers.forEach((customer, index) => {
                 const row = document.createElement("tr");
                 row.innerHTML = `
-                    <td><button class="toggle-btn" onclick="window.toggleExchangers('exchangers${index}')">&#9660;</button></td>
+                    <td><button class="toggle-btn" onclick="toggleExchangers(${index})">&#9660;</button></td>
                     <td>${customer.number}</td>
                     <td>${customer.name}</td>
                     <td>${customer.city}</td>
@@ -47,6 +47,51 @@
                     <td>${customer.email}</td>
                 `;
                 tableBody.appendChild(row);
+
+                // Přidání řádku pro výměníky
+                if (customer.exchangers && customer.exchangers.length > 0) {
+                    const exchangersRow = document.createElement("tr");
+                    exchangersRow.id = `exchangers-${index}`;
+                    exchangersRow.style.display = "none";  // Skrýt výměníky na začátku
+                    const exchangersCell = document.createElement("td");
+                    exchangersCell.colSpan = 9;  // Spustí se pod 9 sloupců
+                    exchangersCell.innerHTML = `
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Registrační číslo</th>
+                                    <th>Výrobce</th>
+                                    <th>Typ</th>
+                                    <th>Výrobní číslo</th>
+                                    <th>Datum výroby</th>
+                                    <th>Teplonosná látka</th>
+                                    <th>Poloha</th>
+                                    <th>Interval kontroly</th>
+                                    <th>Datum poslední kontroly</th>
+                                    <th>Datum plánované kontroly</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${customer.exchangers.map(exchanger => `
+                                    <tr>
+                                        <td>${exchanger.registrationNumber}</td>
+                                        <td>${exchanger.manufacturer}</td>
+                                        <td>${exchanger.type}</td>
+                                        <td>${exchanger.productionNumber}</td>
+                                        <td>${exchanger.productionDate}</td>
+                                        <td>${exchanger.heatCarrier}</td>
+                                        <td>${exchanger.location}</td>
+                                        <td>${exchanger.checkInterval}</td>
+                                        <td>${exchanger.lastCheckDate}</td>
+                                        <td>${exchanger.nextCheckDate}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                        </table>
+                    `;
+                    exchangersRow.appendChild(exchangersCell);
+                    tableBody.appendChild(exchangersRow);
+                }
             });
         }
 
@@ -102,9 +147,22 @@
         };
 
         // Funkce pro přepínání zobrazení výměníků
-        window.toggleExchangers = function(id) {
-            let row = document.getElementById(id);
-            row.style.display = row.style.display === "none" ? "table-row" : "none";
+        window.toggleExchangers = function(customerIndex) {
+            const exchangersRow = document.getElementById(`exchangers-${customerIndex}`);
+            console.log(`Hledám ID: exchangers-${customerIndex}`, exchangersRow);
+            if (!exchangersRow) {
+                console.error(`Chyba: Element s ID 'exchangers-${customerIndex}' nebyl nalezen.`);
+                return;
+            }
+            const button = document.querySelectorAll(`button.toggle-btn`)[customerIndex];
+    
+            if (exchangersRow.style.display === "none") {
+                exchangersRow.style.display = "table-row";
+                button.innerHTML = "&#9650;";  // Nahrazení šipky dolů šipkou nahoru
+            } else {
+                exchangersRow.style.display = "none";
+                button.innerHTML = "&#9660;";  // Nahrazení šipky nahoru šipkou dolů
+            }
         }
 
         // Funkce pro zobrazení modálního okna pro přidání zákazníka
