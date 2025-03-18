@@ -34,64 +34,61 @@
     <button onclick="loadCustomers()">Načíst zákazníky</button>
 
 
-    <script type="module">
-        // ✅ Správné importy Firebase
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js";
+<script type="module">
+    import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+    import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js";
 
-        // ✅ Firebase konfigurace
-        const firebaseConfig = {
-            apiKey: "AIzaSyD6KR6-j_ouZz9pZ7X1hbKDPpBYanP6qUs",
-            authDomain: "test3-a06c4.firebaseapp.com",
-            projectId: "test3-a06c4",
-            storageBucket: "test3-a06c4.appspot.com",
-            messagingSenderId: "982762948421",
-            appId: "1:982762948421:web:56e67c73d435c0e00fa02c"
-        };
+    const firebaseConfig = {
+        apiKey: "AIzaSyD6KR6-j_ouZz9pZ7X1hbKDPpBYanP6qUs",
+        authDomain: "test3-a06c4.firebaseapp.com",
+        projectId: "test3-a06c4",
+        storageBucket: "test3-a06c4.appspot.com",
+        messagingSenderId: "982762948421",
+        appId: "1:982762948421:web:56e67c73d435c0e00fa02c"
+    };
 
-        // ✅ Inicializace Firebase
-        const app = initializeApp(firebaseConfig);
-        const db = getFirestore(app);
+    const app = initializeApp(firebaseConfig);
+    const db = getFirestore(app);
 
-        // ✅ Přidání zákazníka do Firestore
-        async function addCustomer() {
-            try {
-                const docRef = await addDoc(collection(db, "customers"), {
-                    name: "Firma C",
-                    city: "Ostrava",
-                    street: "Nádražní 45",
-                    ico: "87654321",
-                    contact: "Marek Dvořák",
-                    phone: "+420 777 888 999",
-                    email: "dvorak@firmac.cz"
-                });
-                console.log("Zákazník přidán s ID:", docRef.id);
-            } catch (e) {
-                console.error("Chyba při přidávání:", e);
-            }
-        }
-
-        // ✅ Načtení zákazníků z Firestore
-        async function loadCustomers() {
-            const querySnapshot = await getDocs(collection(db, "customers"));
-            let tableBody = document.getElementById("customersTableBody");
-            tableBody.innerHTML = ""; // Vyčistí tabulku
-
-            querySnapshot.forEach((doc) => {
-                let data = doc.data();
-                let row = `<tr>
-                    <td>${data.name}</td>
-                    <td>${data.city}</td>
-                    <td>${data.street}</td>
-                    <td>${data.ico}</td>
-                    <td>${data.contact}</td>
-                    <td>${data.phone}</td>
-                    <td>${data.email}</td>
-                </tr>`;
-                tableBody.innerHTML += row;
+    // ✅ Přiřazení funkcí k window pro použití v onclick
+    window.addCustomer = async function() {
+        try {
+            const docRef = await addDoc(collection(db, "customers"), {
+                name: "Firma C",
+                city: "Ostrava",
+                street: "Nádražní 45",
+                ico: "87654321",
+                contact: "Marek Dvořák",
+                phone: "+420 777 888 999",
+                email: "dvorak@firmac.cz"
             });
+            console.log("Zákazník přidán s ID:", docRef.id);
+        } catch (e) {
+            console.error("Chyba při přidávání:", e);
         }
-    </script>
+    };
+
+    window.loadCustomers = async function() {
+        const querySnapshot = await getDocs(collection(db, "customers"));
+        let tableBody = document.getElementById("customersTableBody");
+        tableBody.innerHTML = ""; // Vyčistí tabulku
+
+        querySnapshot.forEach((doc) => {
+            let data = doc.data();
+            let row = `<tr>
+                <td>${data.name}</td>
+                <td>${data.city}</td>
+                <td>${data.street}</td>
+                <td>${data.ico}</td>
+                <td>${data.contact}</td>
+                <td>${data.phone}</td>
+                <td>${data.email}</td>
+            </tr>`;
+            tableBody.innerHTML += row;
+        });
+    };
+</script>
+
 
     <script>
         // ✅ Přidání funkce pro rozbalení výměníků
