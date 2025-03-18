@@ -27,83 +27,98 @@
     </style>
 </head>
 
-<script type="module">
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
-   import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";  
-  const firebaseConfig = {
-    apiKey: "AIzaSyD6KR6-j_ouZz9pZ7X1hbKDPpBYanP6qUs",
-    authDomain: "test3-a06c4.firebaseapp.com",
-    projectId: "test3-a06c4",
-    storageBucket: "test3-a06c4.firebasestorage.app",
-    messagingSenderId: "982762948421",
-    appId: "1:982762948421:web:56e67c73d435c0e00fa02c"
-  };
-  // Initialize Firebase
-  const app = initializeApp(firebaseConfig);
-  const db = getFirestore(app);
-</script>
-
-<script type="module">
-  async function addCustomer() {
-    try {
-      const docRef = await addDoc(collection(db, "customers"), {
-        name: "Firma C",
-        city: "Ostrava",
-        street: "Nádražní 45",
-        ico: "87654321",
-        contact: "Marek Dvořák",
-        phone: "+420 777 888 999",
-        email: "dvorak@firmac.cz"
-      });
-      console.log("Zákazník přidán s ID:", docRef.id);
-    } catch (e) {
-      console.error("Chyba při přidávání:", e);
-    }
-  }
-</script>
-<button onclick="addCustomer()">Přidat zákazníka</button>
-
- <script type="module">
-  async function loadCustomers() {
-    const querySnapshot = await getDocs(collection(db, "customers"));
-    let tableBody = document.getElementById("customersTableBody");
-    tableBody.innerHTML = ""; // Vyčistí tabulku
-
-    querySnapshot.forEach((doc) => {
-      let data = doc.data();
-      let row = `<tr>
-        <td>${data.name}</td>
-        <td>${data.city}</td>
-        <td>${data.street}</td>
-        <td>${data.ico}</td>
-        <td>${data.contact}</td>
-        <td>${data.phone}</td>
-        <td>${data.email}</td>
-      </tr>`;
-      tableBody.innerHTML += row;
-    });
-  }
-</script>
-
-<button onclick="loadCustomers()">Načíst zákazníky</button>
-<table>
-  <thead>
-    <tr>
-      <th>Název firmy</th>
-      <th>Město</th>
-      <th>Ulice</th>
-      <th>IČO</th>
-      <th>Kontakt</th>
-      <th>Telefon</th>
-      <th>Email</th>
-    </tr>
-  </thead>
-  <tbody id="customersTableBody"></tbody>
-</table>
-   
-    
 <body>
     <h2>Evidenční systém výměníků</h2>
+
+    <button onclick="addCustomer()">Přidat zákazníka</button>
+    <button onclick="loadCustomers()">Načíst zákazníky</button>
+
+    <table>
+        <thead>
+            <tr>
+                <th>Název firmy</th>
+                <th>Město</th>
+                <th>Ulice</th>
+                <th>IČO</th>
+                <th>Kontakt</th>
+                <th>Telefon</th>
+                <th>Email</th>
+            </tr>
+        </thead>
+        <tbody id="customersTableBody"></tbody>
+    </table>
+
+    <script type="module">
+        // ✅ Správné importy Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
+        import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js";
+
+        // ✅ Firebase konfigurace
+        const firebaseConfig = {
+            apiKey: "AIzaSyD6KR6-j_ouZz9pZ7X1hbKDPpBYanP6qUs",
+            authDomain: "test3-a06c4.firebaseapp.com",
+            projectId: "test3-a06c4",
+            storageBucket: "test3-a06c4.appspot.com",
+            messagingSenderId: "982762948421",
+            appId: "1:982762948421:web:56e67c73d435c0e00fa02c"
+        };
+
+        // ✅ Inicializace Firebase
+        const app = initializeApp(firebaseConfig);
+        const db = getFirestore(app);
+
+        // ✅ Přidání zákazníka do Firestore
+        async function addCustomer() {
+            try {
+                const docRef = await addDoc(collection(db, "customers"), {
+                    name: "Firma C",
+                    city: "Ostrava",
+                    street: "Nádražní 45",
+                    ico: "87654321",
+                    contact: "Marek Dvořák",
+                    phone: "+420 777 888 999",
+                    email: "dvorak@firmac.cz"
+                });
+                console.log("Zákazník přidán s ID:", docRef.id);
+            } catch (e) {
+                console.error("Chyba při přidávání:", e);
+            }
+        }
+
+        // ✅ Načtení zákazníků z Firestore
+        async function loadCustomers() {
+            const querySnapshot = await getDocs(collection(db, "customers"));
+            let tableBody = document.getElementById("customersTableBody");
+            tableBody.innerHTML = ""; // Vyčistí tabulku
+
+            querySnapshot.forEach((doc) => {
+                let data = doc.data();
+                let row = `<tr>
+                    <td>${data.name}</td>
+                    <td>${data.city}</td>
+                    <td>${data.street}</td>
+                    <td>${data.ico}</td>
+                    <td>${data.contact}</td>
+                    <td>${data.phone}</td>
+                    <td>${data.email}</td>
+                </tr>`;
+                tableBody.innerHTML += row;
+            });
+        }
+    </script>
+
+    <script>
+        // ✅ Přidání funkce pro rozbalení výměníků
+        function toggleExchangers(id) {
+            let row = document.getElementById(id);
+            if (row.style.display === "none") {
+                row.style.display = "table-row";
+            } else {
+                row.style.display = "none";
+            }
+        }
+    </script>
+
     <table>
         <thead>
             <tr>
@@ -160,64 +175,6 @@
                                 <td>1 rok</td>
                                 <td>01.01.2023</td>
                                 <td>01.01.2024</td>
-                                <td><a href="#">📷</a></td>
-                            </tr>
-                            <tr>
-                                <td>VX-002</td>
-                                <td>Danfoss</td>
-                                <td>Deskový</td>
-                                <td>987654321</td>
-                                <td>15.05.2019</td>
-                                <td>Olej</td>
-                                <td>Hala B</td>
-                                <td>2 roky</td>
-                                <td>15.05.2022</td>
-                                <td>15.05.2024</td>
-                                <td><a href="#">📷</a></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </td>
-            </tr>
-            <tr>
-                <td><button class="toggle-btn" onclick="toggleExchangers('exchangers2')">&#9660;</button></td>
-                <td>2</td>
-                <td>Firma B</td>
-                <td>Brno</td>
-                <td>Masarykova 45</td>
-                <td>87654321</td>
-                <td>Petr Svoboda</td>
-                <td>+420 987 654 321</td>
-                <td>svoboda@firmab.cz</td>
-            </tr>
-            <tr id="exchangers2" style="display: none;">
-                <td colspan="9">
-                    <table>
-                        <tbody>
-                            <tr>
-                                <td>VX-003</td>
-                                <td>GEA</td>
-                                <td>Spirálový</td>
-                                <td>564738291</td>
-                                <td>20.09.2018</td>
-                                <td>Ethylenglykol</td>
-                                <td>Strojovna 2</td>
-                                <td>3 roky</td>
-                                <td>20.09.2021</td>
-                                <td>20.09.2024</td>
-                                <td><a href="#">📷</a></td>
-                            </tr>
-                            <tr>
-                                <td>VX-004</td>
-                                <td>SWEP</td>
-                                <td>Pájený</td>
-                                <td>192837465</td>
-                                <td>12.11.2020</td>
-                                <td>Voda</td>
-                                <td>Strojovna C</td>
-                                <td>1 rok</td>
-                                <td>12.11.2023</td>
-                                <td>12.11.2024</td>
                                 <td><a href="#">📷</a></td>
                             </tr>
                         </tbody>
