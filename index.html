@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Evidenční systém výměníků</title>
+    <script>
+        function toggleExchangers(id) {
+            let row = document.getElementById(id);
+            row.style.display = row.style.display === "none" ? "table-row" : "none";
+        }
+    </script>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            border: 1px solid black;
+            padding: 8px;
+            text-align: left;
+        }
+        .toggle-btn {
+            cursor: pointer;
+            background: none;
+            border: none;
+            font-size: 16px;
+        }
+    </style>
+</head>
+<body>
+    <h2>Evidenční systém výměníků</h2>
+    <table>
+        <thead>
+            <tr>
+                <th></th>
+                <th>Číslo</th>
+                <th>Název firmy</th>
+                <th>Město</th>
+                <th>Ulice</th>
+                <th>IČO</th>
+                <th>Kontaktní osoba</th>
+                <th>Telefon</th>
+                <th>E-mail</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><button class="toggle-btn" onclick="toggleExchangers('exchangers1')">&#9660;</button></td>
+                <td>1</td>
+                <td>Firma A</td>
+                <td>Praha</td>
+                <td>Hlavní 123</td>
+                <td>12345678</td>
+                <td>Jan Novák</td>
+                <td>+420 123 456 789</td>
+                <td>novak@firma.cz</td>
+            </tr>
+            <tr id="exchangers1" style="display: none;">
+                <td colspan="9">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Registrační číslo</th>
+                                <th>Výrobce</th>
+                                <th>Typ výměníku</th>
+                                <th>Výrobní číslo</th>
+                                <th>Datum výroby</th>
+                                <th>Teplonosná látka</th>
+                                <th>Poloha</th>
+                                <th>Interval kontroly</th>
+                                <th>Datum poslední kontroly</th>
+                                <th>Datum plánované kontroly</th>
+                                <th>QR kód</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr>
+                                <td>VX-001</td>
+                                <td>Alfa Laval</td>
+                                <td>Pájený</td>
+                                <td>123456789</td>
+                                <td>01.01.2020</td>
+                                <td>Voda</td>
+                                <td>Strojovna 1</td>
+                                <td>1 rok</td>
+                                <td>01.01.2023</td>
+                                <td>01.01.2024</td>
+                                <td><a href="#">📷</a></td>
+                            </tr>
+                            <tr>
+                                <td>VX-002</td>
+                                <td>Danfoss</td>
+                                <td>Deskový</td>
+                                <td>987654321</td>
+                                <td>15.05.2019</td>
+                                <td>Olej</td>
+                                <td>Hala B</td>
+                                <td>2 roky</td>
+                                <td>15.05.2022</td>
+                                <td>15.05.2024</td>
+                                <td><a href="#">📷</a></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </td>
+            </tr>
+            <tr>
+                <td><button class="toggle-btn" onclick="toggleExchangers('exchangers2')">&#9660;</button></td>
+                <td>2</td>
+                <td>Firma B</td>
+                <td>Brno</td>
+                <td>Masarykova 45</td>
+                <td>87654321</td>
+                <td>Petr Svoboda</td>
+                <td>+420 987 654 321</td>
+                <td>svoboda@firmab.cz</td>
+            </tr>
+            <tr id="exchangers2" style="display: none;">
+                <td colspan="9">
+                    <table>
+                        <tbody>
+                            <tr>
+                                <td>VX-003</td>
+                                <td>GEA</td>
+                                <td>Spirálový</td>
+                                <td>564738291</td>
+                                <td>20.09.2018</td>
+                                <td>Ethylenglykol</td>
+                                <td>Strojovna 2</td>
+                                <td>3 roky</td>
+                                <td>20.09.2021</td>
+                                <td>20.09.2024</td>
+                                <td><a href="#">📷</a></td>
+                            </tr>
+                            <tr>
+                                <td>VX-004</td>
+                                <td>SWEP</td>
+                                <td>Pájený</td>
+                                <td>192837465</td>
+                                <td>12.11.2020</td>
+                                <td>Voda</td>
+                                <td>Strojovna C</td>
+                                <td>1 rok</td>
+                                <td>12.11.2023</td>
+                                <td>12.11.2024</td>
+                                <td><a href="#">📷</a></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </td>
+            </tr>
+        </tbody>
+    </table>
+</body>
+</html>
