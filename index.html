@@ -89,6 +89,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Evidenční systém výměníků</title>
+    <script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
         import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js";
@@ -151,7 +152,7 @@
                     exchangersRow.id = `exchangers-${index}`;
                     exchangersRow.style.display = "none";  // Skrýt výměníky na začátku
                     const exchangersCell = document.createElement("td");
-                    exchangersCell.colSpan = 9;  // Spustí se pod 9 sloupců
+                    exchangersCell.colSpan = 10;  // Spustí se pod 9 sloupců
                     exchangersCell.innerHTML = `
                         <table>
                             <thead>
@@ -166,6 +167,7 @@
                                     <th>Interval kontroly</th>
                                     <th>Datum poslední kontroly</th>
                                     <th>Datum plánované kontroly</th>
+                                    <th>QR kód</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -181,16 +183,33 @@
                                         <td>${exchanger.checkInterval}</td>
                                         <td>${exchanger.lastCheckDate}</td>
                                         <td>${exchanger.nextCheckDate}</td>
+                                        <td><div class="qr-code-container" data-reg="${exchanger.registrationNumber}"></div></td>
                                     </tr>
                                 `).join('')}
                             </tbody>
                         </table>
                     `;
                     exchangersRow.appendChild(exchangersCell);
-                    tableBody.appendChild(exchangersRow);
-                }
-            });
-        }
+                                tableBody.appendChild(exchangersRow);
+
+                                // Generování QR kódů pro všechny výměníky
+                                customer.exchangers.forEach((exchanger) => {
+                                    const qrContainer = document.querySelector(`.qr-code-container[data-reg="${exchanger.registrationNumber}"]`);
+                                    QRCode.toDataURL(exchanger.registrationNumber)  // Generování QR kódu na základě registračního čísla
+                                        .then((url) => {
+                                            const img = document.createElement("img");
+                                            img.src = url;
+                                            img.alt = `QR kód pro ${exchanger.registrationNumber}`;
+                                            img.style.width = "50px";  // Nastavení velikosti obrázku
+                                            qrContainer.appendChild(img);
+                                        })
+                                        .catch((error) => {
+                                            console.error("Chyba při generování QR kódu:", error);
+                                        });
+                                });
+                            }
+                        });
+                    }
 
         // Funkce pro načtení výměníků
         async function loadExchangers() {
@@ -226,8 +245,26 @@
         function displayExchangers(exchangers) {
             const tableBody = document.getElementById("exchangers-body");
             tableBody.innerHTML = '';  // Vymazání starých dat
+
             exchangers.forEach((exchanger) => {
                 const row = document.createElement("tr");
+
+                // Vytvoření QR kódu pro registrační číslo
+                const qrCodeContainer = document.createElement("div");
+                QRCode.toDataURL(exchanger.registrationNumber)  // Generujeme QR kód z registračního čísla
+                    .then((url) => {
+                        // Vytvoříme obrázek pro QR kód a přidáme ho do buněk
+                        const img = document.createElement("img");
+                        img.src = url;
+                        img.alt = `QR kód pro ${exchanger.registrationNumber}`;
+                        img.style.width = "50px"; // Velikost obrázku QR kódu, můžeš upravit podle potřeby
+                        qrCodeContainer.appendChild(img);
+                    })
+                    .catch((error) => {
+                        console.error("Chyba při generování QR kódu:", error);
+                    });
+
+                // Přidáme obsah do řádku
                 row.innerHTML = `
                     <td>${exchanger.registrationNumber}</td>
                     <td>${exchanger.manufacturer}</td>
@@ -239,8 +276,14 @@
                     <td>${exchanger.checkInterval}</td>
                     <td>${exchanger.lastCheckDate}</td>
                     <td>${exchanger.nextCheckDate}</td>
-                    <td><a href="#">📷</a></td>
+                    <td></td>  <!-- Tady bude QR kód -->
                 `;
+        
+                // Přidáme vytvořený QR kód do posledního sloupce
+                const lastColumn = row.querySelector("td:last-child");
+                lastColumn.appendChild(qrCodeContainer);
+
+                // Přidáme řádek do tabulky
                 tableBody.appendChild(row);
             });
         }
