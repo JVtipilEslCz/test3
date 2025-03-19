@@ -1,5 +1,90 @@
 <!DOCTYPE html>
 <html lang="cs">
+    <body>
+    <h2>Evidenční systém výměníků</h2>
+
+    <!-- Zákazníci -->
+    <h3>Seznam zákazníků</h3>
+    <table>
+        <thead>
+            <tr>
+                <th></th>
+                <th>Číslo</th>
+                <th>Název firmy</th>
+                <th>Město</th>
+                <th>Ulice</th>
+                <th>IČO</th>
+                <th>Kontaktní osoba</th>
+                <th>Telefon</th>
+                <th>E-mail</th>
+            </tr>
+        </thead>
+        <tbody id="customers-body"></tbody>
+    </table>
+    <button onclick="openAddCustomerModal()">Přidat zákazníka</button>
+    <button onclick="openAddExchangerModal()">Přidat výměník</button>
+
+    <!-- Modální okno pro přidání zákazníka -->
+    <div id="addCustomerModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('addCustomerModal')">&times;</span>
+            <h3>Přidat zákazníka</h3>
+            <form onsubmit="submitCustomerForm(); return false;">
+                <label for="customerNumber">Číslo:</label><br>
+                <input type="text" id="customerNumber"><br>
+                <label for="customerName">Název firmy:</label><br>
+                <input type="text" id="customerName"><br>
+                <label for="customerCity">Město:</label><br>
+                <input type="text" id="customerCity"><br>
+                <label for="customerStreet">Ulice:</label><br>
+                <input type="text" id="customerStreet"><br>
+                <label for="customerIco">IČO:</label><br>
+                <input type="text" id="customerIco"><br>
+                <label for="customerContact">Kontaktní osoba:</label><br>
+                <input type="text" id="customerContact"><br>
+                <label for="customerPhone">Telefon:</label><br>
+                <input type="text" id="customerPhone"><br>
+                <label for="customerEmail">E-mail:</label><br>
+                <input type="email" id="customerEmail"><br>
+                <button type="submit">Přidat</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modální okno pro přidání výměníku -->
+    <div id="addExchangerModal" class="modal">
+        <div class="modal-content">
+            <span class="close" onclick="closeModal('addExchangerModal')">&times;</span>
+            <h3>Přidat výměník</h3>
+            <form onsubmit="submitExchangerForm(); return false;">
+                <label for="exchangerCustomer">Zákazník:</label><br>
+                <select id="exchangerCustomer"></select><br>
+                <label for="exchangerRegNumber">Registrační číslo:</label><br>
+                <input type="text" id="exchangerRegNumber"><br>
+                <label for="exchangerManufacturer">Výrobce:</label><br>
+                <input type="text" id="exchangerManufacturer"><br>
+                <label for="exchangerType">Typ:</label><br>
+                <input type="text" id="exchangerType"><br>
+                <label for="exchangerProdNumber">Výrobní číslo:</label><br>
+                <input type="text" id="exchangerProdNumber"><br>
+                <label for="exchangerProdDate">Datum výroby:</label><br>
+                <input type="date" id="exchangerProdDate"><br>
+                <label for="exchangerHeatCarrier">Teplonosná látka:</label><br>
+                <input type="text" id="exchangerHeatCarrier"><br>
+                <label for="exchangerLocation">Poloha:</label><br>
+                <input type="text" id="exchangerLocation"><br>
+                <label for="exchangerCheckInterval">Interval kontroly:</label><br>
+                <input type="text" id="exchangerCheckInterval"><br>
+                <label for="exchangerLastCheckDate">Datum poslední kontroly:</label><br>
+                <input type="date" id="exchangerLastCheckDate"><br>
+                <label for="exchangerNextCheckDate">Datum plánované kontroly:</label><br>
+                <input type="date" id="exchangerNextCheckDate"><br>
+                <button type="submit">Přidat</button>
+            </form>
+        </div>
+    </div>
+</body>
+    
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,6 +92,8 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
         import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js";
+        import { doc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js";
+
 
         // Inicializace Firebase
         const firebaseConfig = {
@@ -22,12 +109,22 @@
         const db = getFirestore(app);
 
         // Funkce pro načtení zákazníků
+
         async function loadCustomers() {
             const customersCol = collection(db, "customers");
             const customerSnapshot = await getDocs(customersCol);
             const customersList = customerSnapshot.docs.map(doc => doc.data());
             displayCustomers(customersList);
         }
+        
+        async function loadCustomerOptions() {
+    const customersCol = collection(db, "customers");
+    const customerSnapshot = await getDocs(customersCol);
+    const customers = customerSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+    const select = document.getElementById("exchangerCustomer");
+    select.innerHTML = customers.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+}
 
         // Funkce pro zobrazení zákazníků
         function displayCustomers(customers) {
@@ -102,6 +199,28 @@
             const exchangersList = exchangersSnapshot.docs.map(doc => doc.data());
             displayExchangers(exchangersList);
         }
+        
+       // Funkce pro přidání výměníku ke konkrétnímu zákazníkovi
+       async function addExchanger(exchangerData, customerId) {
+           if (!customerId) {
+               console.error("customerId is missing or invalid!");
+               return;  // Zastaví funkci, pokud customerId není platné
+           }
+
+           console.log("Adding exchanger for customer ID:", customerId);
+
+           const customerRef = doc(db, "customers", customerId);
+
+           try {
+               await updateDoc(customerRef, {
+                   exchangers: arrayUnion(exchangerData)  // Přidá nový výměník do pole exchangers
+               });
+               loadCustomers();  // Aktualizace zobrazení
+           } catch (error) {
+               console.error("Error updating customer data:", error);
+           }
+       }
+ 
 
         // Funkce pro zobrazení výměníků
         function displayExchangers(exchangers) {
@@ -133,17 +252,13 @@
             loadCustomers();  // Opětovné načtení zákazníků po přidání
         }
 
-        // Funkce pro přidání nového výměníku
-        async function addExchanger(exchangerData) {
-            const exchangersCol = collection(db, "exchangers");
-            await addDoc(exchangersCol, exchangerData);
-            loadExchangers();  // Opětovné načtení výměníků po přidání
-        }
+
 
         // Načtení dat po načtení stránky
         window.onload = function() {
             loadCustomers();
             loadExchangers();
+            loadCustomerOptions();
         };
 
         // Funkce pro přepínání zobrazení výměníků
@@ -170,6 +285,19 @@
             document.getElementById("addCustomerModal").style.display = "block";
         }
 
+        // Funkce pro vyprázdnění formuláře
+        function clearExchangerForm() {
+            document.getElementById("exchangerRegNumber").value = "";
+            document.getElementById("exchangerManufacturer").value = "";
+            document.getElementById("exchangerType").value = "";
+            document.getElementById("exchangerProdNumber").value = "";
+            document.getElementById("exchangerProdDate").value = "";
+            document.getElementById("exchangerHeatCarrier").value = "";
+            document.getElementById("exchangerLocation").value = "";
+            document.getElementById("exchangerCheckInterval").value = "";
+            document.getElementById("exchangerLastCheckDate").value = "";
+            document.getElementById("exchangerNextCheckDate").value = "";
+        }
         // Funkce pro zobrazení modálního okna pro přidání výměníku
         window.openAddExchangerModal = function() {
             document.getElementById("addExchangerModal").style.display = "block";
@@ -177,6 +305,7 @@
 
         // Funkce pro zavření modálního okna
         window.closeModal = function(modalId) {
+            clearExchangerForm();
             document.getElementById(modalId).style.display = "none";
         }
 
@@ -194,10 +323,17 @@
             };
             addCustomer(customerData);
             closeModal('addCustomerModal');
-        }
+        };
 
         // Funkce pro odeslání formuláře výměníku
         window.submitExchangerForm = function() {
+            const customerId = document.getElementById("exchangerCustomer").value;
+
+            if (!customerId) {
+                console.error("Chyba: customerId není vybrán!");
+                return;  // Pokud není customerId vybrán, přerušíme odeslání formuláře
+            }
+
             const exchangerData = {
                 registrationNumber: document.getElementById("exchangerRegNumber").value,
                 manufacturer: document.getElementById("exchangerManufacturer").value,
@@ -210,9 +346,10 @@
                 lastCheckDate: document.getElementById("exchangerLastCheckDate").value,
                 nextCheckDate: document.getElementById("exchangerNextCheckDate").value,
             };
-            addExchanger(exchangerData);
-            closeModal('addExchangerModal');
-        }
+
+            addExchanger(exchangerData, customerId);  // Předáme customerId
+            closeModal('addExchangerModal');  // Zavření modálního okna
+        };
     </script>
     <style>
         body {
@@ -268,108 +405,5 @@
         }
     </style>
 </head>
-<body>
-    <h2>Evidenční systém výměníků</h2>
 
-    <!-- Zákazníci -->
-    <h3>Seznam zákazníků</h3>
-    <table>
-        <thead>
-            <tr>
-                <th></th>
-                <th>Číslo</th>
-                <th>Název firmy</th>
-                <th>Město</th>
-                <th>Ulice</th>
-                <th>IČO</th>
-                <th>Kontaktní osoba</th>
-                <th>Telefon</th>
-                <th>E-mail</th>
-            </tr>
-        </thead>
-        <tbody id="customers-body"></tbody>
-    </table>
-    <button onclick="openAddCustomerModal()">Přidat zákazníka</button>
-
-    <!-- Modální okno pro přidání zákazníka -->
-    <div id="addCustomerModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal('addCustomerModal')">&times;</span>
-            <h3>Přidat zákazníka</h3>
-            <form onsubmit="submitCustomerForm(); return false;">
-                <label for="customerNumber">Číslo:</label><br>
-                <input type="text" id="customerNumber"><br>
-                <label for="customerName">Název firmy:</label><br>
-                <input type="text" id="customerName"><br>
-                <label for="customerCity">Město:</label><br>
-                <input type="text" id="customerCity"><br>
-                <label for="customerStreet">Ulice:</label><br>
-                <input type="text" id="customerStreet"><br>
-                <label for="customerIco">IČO:</label><br>
-                <input type="text" id="customerIco"><br>
-                <label for="customerContact">Kontaktní osoba:</label><br>
-                <input type="text" id="customerContact"><br>
-                <label for="customerPhone">Telefon:</label><br>
-                <input type="text" id="customerPhone"><br>
-                <label for="customerEmail">E-mail:</label><br>
-                <input type="email" id="customerEmail"><br>
-                <button type="submit">Přidat</button>
-            </form>
-        </div>
-    </div>
-
-    <!-- Výměníky -->
-    <h3>Seznam výměníků</h3>
-    <table>
-        <thead>
-            <tr>
-                <th>Registrační číslo</th>
-                <th>Výrobce</th>
-                <th>Typ výměníku</th>
-                <th>Výrobní číslo</th>
-                <th>Datum výroby</th>
-                <th>Teplonosná látka</th>
-                <th>Poloha</th>
-                <th>Interval kontroly</th>
-                <th>Datum poslední kontroly</th>
-                <th>Datum plánované kontroly</th>
-                <th>QR kód</th>
-            </tr>
-        </thead>
-        <tbody id="exchangers-body"></tbody>
-    </table>
-    <button onclick="openAddExchangerModal()">Přidat výměník</button>
-
-    <!-- Modální okno pro přidání výměníku -->
-    <div id="addExchangerModal" class="modal">
-        <div class="modal-content">
-            <span class="close" onclick="closeModal('addExchangerModal')">&times;</span>
-            <h3>Přidat výměník</h3>
-            <form onsubmit="submitExchangerForm(); return false;">
-                <label for="exchangerRegNumber">Registrační číslo:</label><br>
-                <input type="text" id="exchangerRegNumber"><br>
-                <label for="exchangerManufacturer">Výrobce:</label><br>
-                <input type="text" id="exchangerManufacturer"><br>
-                <label for="exchangerType">Typ:</label><br>
-                <input type="text" id="exchangerType"><br>
-                <label for="exchangerProdNumber">Výrobní číslo:</label><br>
-                <input type="text" id="exchangerProdNumber"><br>
-                <label for="exchangerProdDate">Datum výroby:</label><br>
-                <input type="date" id="exchangerProdDate"><br>
-                <label for="exchangerHeatCarrier">Teplonosná látka:</label><br>
-                <input type="text" id="exchangerHeatCarrier"><br>
-                <label for="exchangerLocation">Poloha:</label><br>
-                <input type="text" id="exchangerLocation"><br>
-                <label for="exchangerCheckInterval">Interval kontroly:</label><br>
-                <input type="text" id="exchangerCheckInterval"><br>
-                <label for="exchangerLastCheckDate">Datum poslední kontroly:</label><br>
-                <input type="date" id="exchangerLastCheckDate"><br>
-                <label for="exchangerNextCheckDate">Datum plánované kontroly:</label><br>
-                <input type="date" id="exchangerNextCheckDate"><br>
-                <button type="submit">Přidat</button>
-            </form>
-        </div>
-    </div>
-
-</body>
 </html>
