@@ -2,7 +2,8 @@
 <html lang="cs">
     <body>
     <h2>Evidenční systém výměníků</h2>
-
+    <button onclick="openAddCustomerModal()">Přidat zákazníka</button>
+    <button onclick="openAddExchangerModal()">Přidat výměník</button>
     <!-- Zákazníci -->
     <h3>Seznam zákazníků</h3>
     <table>
@@ -21,8 +22,7 @@
         </thead>
         <tbody id="customers-body"></tbody>
     </table>
-    <button onclick="openAddCustomerModal()">Přidat zákazníka</button>
-    <button onclick="openAddExchangerModal()">Přidat výměník</button>
+
 
     <!-- Modální okno pro přidání zákazníka -->
     <div id="addCustomerModal" class="modal">
@@ -292,7 +292,8 @@
         async function addCustomer(customerData) {
             const customersCol = collection(db, "customers");
             await addDoc(customersCol, customerData);
-            loadCustomers();  // Opětovné načtení zákazníků po přidání
+            loadCustomers();
+            loadCustomerOptions();// Opětovné načtení zákazníků po přidání
         }
 
 
