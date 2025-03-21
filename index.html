@@ -30,8 +30,8 @@
             <span class="close" onclick="closeModal('addCustomerModal')">&times;</span>
             <h3>Přidat zákazníka</h3>
             <form onsubmit="submitCustomerForm(); return false;">
-                <label for="customerNumber">Číslo:</label><br>
-                <input type="text" id="customerNumber"><br>
+                <label for="customerID">ID zákazníka:</label><br>
+                <input type="text" id="customerID"><br>
                 <label for="customerName">Název firmy:</label><br>
                 <input type="text" id="customerName"><br>
                 <label for="customerCity">Město:</label><br>
@@ -94,6 +94,8 @@
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
         import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js";
         import { doc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js";
+        import { setDoc } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js";
+
 
 
         // Inicializace Firebase
@@ -135,7 +137,7 @@
                 const row = document.createElement("tr");
                 row.innerHTML = `
                     <td><button class="toggle-btn" onclick="toggleExchangers(${index})">&#9660;</button></td>
-                    <td>${customer.number}</td>
+                    <td>${customer.customerID}</td>
                     <td>${customer.name}</td>
                     <td>${customer.city}</td>
                     <td>${customer.street}</td>
@@ -290,12 +292,21 @@
 
         // Funkce pro přidání nového zákazníka
         async function addCustomer(customerData) {
-            const customersCol = collection(db, "customers");
-            await addDoc(customersCol, customerData);
-            loadCustomers();
-            loadCustomerOptions();// Opětovné načtení zákazníků po přidání
-        }
+            if (!customerData.customerID) {
+                console.error("Chyba: ID zákazníka musí být vyplněno!");
+                return;
+            }
 
+            const customerRef = doc(db, "customers", customerData.customerID);
+    
+            try {
+                await setDoc(customerRef, customerData);
+                loadCustomers();
+                loadCustomerOptions();
+            } catch (error) {
+                console.error("Chyba při přidávání zákazníka:", error);
+            }
+        }
 
 
         // Načtení dat po načtení stránky
@@ -356,7 +367,7 @@
         // Funkce pro odeslání formuláře zákazníka
         window.submitCustomerForm = function() {
             const customerData = {
-                number: document.getElementById("customerNumber").value,
+                customerID: document.getElementById("customerID").value,
                 name: document.getElementById("customerName").value,
                 city: document.getElementById("customerCity").value,
                 street: document.getElementById("customerStreet").value,
