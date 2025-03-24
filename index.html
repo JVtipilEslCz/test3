@@ -56,7 +56,7 @@
         <div class="modal-content">
             <span class="close" onclick="closeModal('addExchangerModal')">&times;</span>
             <h3>Přidat výměník</h3>
-            <form onsubmit="submitExchangerForm(); return false;">
+            <form onsubmit="submitExchangerForm(event); return false;">
                 <label for="exchangerCustomer">Zákazník:</label><br>
                 <select id="exchangerCustomer"></select><br>
                 <label for="exchangerRegNumber">Registrační číslo:</label><br>
@@ -137,7 +137,7 @@
            customers.forEach((customer, index) => {
                const row = document.createElement("tr");
                row.innerHTML = `
-                   <td><button class="toggle-btn" onclick="toggleExchangers(${index})">&#9660;</button></td>
+                   <td><button class="toggle-btn" data-customerid="${customer.customerID}" onclick="toggleExchangers('${customer.customerID}')">&#9660;</button></td>
                    <td class="no-edit">${customer.customerID}</td>
                    <td data-id="${customer.customerID}" data-field="name">${customer.name}</td>
                    <td data-id="${customer.customerID}" data-field="city">${customer.city}</td>
@@ -150,9 +150,9 @@
                tableBody.appendChild(row);
 
                // Přidání řádku pro výměníky
-               if (customer.exchangers && customer.exchangers.length > 0) {
+               if (customer.exchangers && Object.keys(customer.exchangers).length > 0) {
                    const exchangersRow = document.createElement("tr");
-                   exchangersRow.id = `exchangers-${index}`;
+                   exchangersRow.id = `exchangers-${customer.customerID}-container`;
                    exchangersRow.style.display = "none";  // Skrýt výměníky na začátku
                    const exchangersCell = document.createElement("td");
                    exchangersCell.colSpan = 10;
@@ -175,7 +175,7 @@
                                </tr>
                            </thead>
                            <tbody>
-                               ${customer.exchangers.map(exchanger => `
+                               ${Object.values(customer.exchangers).map(exchanger => `
                                    <tr>
                                        <td class="no-edit">${exchanger.registrationNumber}</td>
                                        <td data-id="${exchanger.registrationNumber}" data-field="manufacturer">${exchanger.manufacturer}</td>
@@ -198,7 +198,7 @@
                    tableBody.appendChild(exchangersRow);
 
                                 // Generování QR kódů pro všechny výměníky
-                                customer.exchangers.forEach((exchanger) => {
+                                Object.values(customer.exchangers).forEach((exchanger) => {
                                     const qrContainer = document.querySelector(`.qr-code-container[data-reg="${exchanger.registrationNumber}"]`);
                                     QRCode.toDataURL(exchanger.registrationNumber)  // Generování QR kódu na základě registračního čísla
                                         .then((url) => {
@@ -239,7 +239,7 @@
                await updateDoc(customerRef, {
                    exchangers: arrayUnion(exchangerData)  // Přidá nový výměník do pole exchangers
                });
-               loadCustomers();  // Aktualizace zobrazení
+              loadCustomers();  // Aktualizace zobrazení
            } catch (error) {
                console.error("Error updating customer data:", error);
            }
@@ -320,14 +320,14 @@
         };
 
         // Funkce pro přepínání zobrazení výměníků
-        window.toggleExchangers = function(customerIndex) {
-            const exchangersRow = document.getElementById(`exchangers-${customerIndex}`);
-            console.log(`Hledám ID: exchangers-${customerIndex}`, exchangersRow);
+        window.toggleExchangers = function(customerID) {
+           const exchangersRow = document.getElementById(`exchangers-${customerID}-container`);
+            console.log(`Hledám ID: exchangers-${customerID}`, exchangersRow);
             if (!exchangersRow) {
-                console.error(`Chyba: Element s ID 'exchangers-${customerIndex}' nebyl nalezen.`);
+                console.error(`Chyba: Element s ID 'exchangers-${customerID}' nebyl nalezen.`);
                 return;
             }
-            const button = document.querySelectorAll(`button.toggle-btn`)[customerIndex];
+            const button = document.querySelectorAll(`button.toggle-btn`)[customerID];
     
             if (exchangersRow.style.display === "none") {
                 exchangersRow.style.display = "table-row";
@@ -368,67 +368,53 @@
         }
 
         // Funkce pro odeslání formuláře zákazníka
-                window.submitCustomerForm = function() {
-                    const customerData = {
-                        customerID: document.getElementById("customerID").value,
-                        name: document.getElementById("customerName").value,
-                        city: document.getElementById("customerCity").value,
-                        street: document.getElementById("customerStreet").value,
-                        ico: document.getElementById("customerIco").value,
-                        contactPerson: document.getElementById("customerContact").value,
-                        phone: document.getElementById("customerPhone").value,
-                        email: document.getElementById("customerEmail").value,
-                    };
-                    addCustomer(customerData);
-                    closeModal('addCustomerModal');
-                };
+                window.submitExchangerForm = function(event) {
+                   if (event) event.preventDefault(); // Zabráníme odeslání formuláře
 
-                // Funkce pro odeslání formuláře výměníku
-                window.submitExchangerForm = function() {
-            const customerId = document.getElementById("exchangerCustomer").value;
+                   const customerId = document.getElementById("exchangerCustomer").value;
 
-            if (!customerId) {
-                console.error("Chyba: customerId není vybrán!");
-                return;  // Pokud není customerId vybrán, přerušíme odeslání formuláře
-            }
+                   if (!customerId) {
+                       console.error("Chyba: customerId není vybrán!");
+                       return;  // Pokud není customerId vybrán, přerušíme odeslání formuláře
+                   }
 
-            // Shromáždění dat z formuláře
-            const exchangerData = {
-                registrationNumber: document.getElementById("exchangerRegNumber").value,
-                manufacturer: document.getElementById("exchangerManufacturer").value,
-                type: document.getElementById("exchangerType").value,
-                productionNumber: document.getElementById("exchangerProdNumber").value,
-                productionDate: document.getElementById("exchangerProdDate").value,
-                heatCarrier: document.getElementById("exchangerHeatCarrier").value,
-                location: document.getElementById("exchangerLocation").value,
-                checkInterval: document.getElementById("exchangerCheckInterval").value,
-                lastCheckDate: document.getElementById("exchangerLastCheckDate").value,
-                nextCheckDate: document.getElementById("exchangerNextCheckDate").value,
-                note: document.getElementById("exchangerNote").value
-            };
+                   // Shromáždění dat z formuláře
+                   const exchangerData = {
+                       registrationNumber: document.getElementById("exchangerRegNumber").value,
+                       manufacturer: document.getElementById("exchangerManufacturer").value,
+                       type: document.getElementById("exchangerType").value,
+                       productionNumber: document.getElementById("exchangerProdNumber").value,
+                       productionDate: document.getElementById("exchangerProdDate").value,
+                       heatCarrier: document.getElementById("exchangerHeatCarrier").value,
+                       location: document.getElementById("exchangerLocation").value,
+                       checkInterval: document.getElementById("exchangerCheckInterval").value,
+                       lastCheckDate: document.getElementById("exchangerLastCheckDate").value,
+                       nextCheckDate: document.getElementById("exchangerNextCheckDate").value,
+                       note: document.getElementById("exchangerNote").value
+                   };
 
-            // Kontrola, zda je vyplněno registrační číslo
-            if (!exchangerData.registrationNumber) {
-                alert("Registrační číslo musí být vyplněno!");
-                return;
-            }
+                   // Kontrola, zda je vyplněno registrační číslo
+                   if (!exchangerData.registrationNumber) {
+                       alert("Registrační číslo musí být vyplněno!");
+                       return;
+                   }
 
-            // Uložení výměníku pod registrationNumber jako ID do kolekce "customers" -> zákazník -> "exchangers"
-            db.collection("customers")  // Kolekce zákazníků
-                .doc(customerId)  // Dokument zákazníka (ID)
-                .collection("exchangers")  // Kolekce výměníků
-                .doc(exchangerData.registrationNumber)  // ID dokumentu = registrationNumber
-                .set(exchangerData)  // Uložení dat
-                .then(() => {
-                    alert("Výměník úspěšně přidán!");
-                    closeModal("addExchangerModal");  // Zavření modálního okna po přidání
-                    // Znovu načteme výměníky, aby se aktualizovala tabulka
-                    loadExchangersForCustomer(customerId);
-                })
-                .catch(error => {
-                    console.error("Chyba při přidávání výměníku:", error);
-                });
-        };
+                   // Uložení výměníku pod registrationNumber jako ID do kolekce "customers" -> zákazník -> "exchangers"
+                   db.collection("customers")  // Kolekce zákazníků
+                       .doc(customerId)  // Dokument zákazníka (ID)
+                       .collection("exchangers")  // Kolekce výměníků
+                       .doc(exchangerData.registrationNumber)  // ID dokumentu = registrationNumber
+                       .set(exchangerData)  // Uložení dat
+                       .then(() => {
+                           alert("Výměník úspěšně přidán!");
+                           closeModal("addExchangerModal");  // Zavření modálního okna po přidání
+                           loadCustomers();  // Znovu načteme zákazníky, aby se aktualizovala tabulka
+                       })
+                       .catch(error => {
+                           console.error("Chyba při přidávání výměníku:", error);
+                       });
+               };
+
 
         // Funkce pro editaci buňky po dvojkliku
          document.addEventListener("DOMContentLoaded", function () {
