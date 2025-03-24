@@ -79,6 +79,8 @@
                 <input type="date" id="exchangerLastCheckDate"><br>
                 <label for="exchangerNextCheckDate">Datum plánované kontroly:</label><br>
                 <input type="date" id="exchangerNextCheckDate"><br>
+                <label for="exchangerNote">Poznámka:</label><br>
+                <input type="text" id="exchangerNote"><br>
                 <button type="submit">Přidat</button>
             </form>
         </div>
@@ -96,8 +98,7 @@
         import { doc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js";
         import { setDoc } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js";
 
-
-
+       
         // Inicializace Firebase
         const firebaseConfig = {
             apiKey: "AIzaSyD6KR6-j_ouZz9pZ7X1hbKDPpBYanP6qUs",
@@ -131,68 +132,70 @@
 
         // Funkce pro zobrazení zákazníků
         function displayCustomers(customers) {
-            const tableBody = document.getElementById("customers-body");
-            tableBody.innerHTML = '';  // Vymazání starých dat
-            customers.forEach((customer, index) => {
-                const row = document.createElement("tr");
-                row.innerHTML = `
-                    <td><button class="toggle-btn" onclick="toggleExchangers(${index})">&#9660;</button></td>
-                    <td>${customer.customerID}</td>
-                    <td>${customer.name}</td>
-                    <td>${customer.city}</td>
-                    <td>${customer.street}</td>
-                    <td>${customer.ico}</td>
-                    <td>${customer.contactPerson}</td>
-                    <td>${customer.phone}</td>
-                    <td>${customer.email}</td>
-                `;
-                tableBody.appendChild(row);
+           const tableBody = document.getElementById("customers-body");
+           tableBody.innerHTML = '';  // Vymazání starých dat
+           customers.forEach((customer, index) => {
+               const row = document.createElement("tr");
+               row.innerHTML = `
+                   <td><button class="toggle-btn" onclick="toggleExchangers(${index})">&#9660;</button></td>
+                   <td class="no-edit">${customer.customerID}</td>
+                   <td data-id="${customer.customerID}" data-field="name">${customer.name}</td>
+                   <td data-id="${customer.customerID}" data-field="city">${customer.city}</td>
+                   <td data-id="${customer.customerID}" data-field="street">${customer.street}</td>
+                   <td class="no-edit">${customer.ico}</td>
+                   <td data-id="${customer.customerID}" data-field="contactPerson">${customer.contactPerson}</td>
+                   <td data-id="${customer.customerID}" data-field="phone">${customer.phone}</td>
+                   <td data-id="${customer.customerID}" data-field="email">${customer.email}</td>
+               `;
+               tableBody.appendChild(row);
 
-                // Přidání řádku pro výměníky
-                if (customer.exchangers && customer.exchangers.length > 0) {
-                    const exchangersRow = document.createElement("tr");
-                    exchangersRow.id = `exchangers-${index}`;
-                    exchangersRow.style.display = "none";  // Skrýt výměníky na začátku
-                    const exchangersCell = document.createElement("td");
-                    exchangersCell.colSpan = 10;  // Spustí se pod 9 sloupců
-                    exchangersCell.innerHTML = `
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Registrační číslo</th>
-                                    <th>Výrobce</th>
-                                    <th>Typ</th>
-                                    <th>Výrobní číslo</th>
-                                    <th>Datum výroby</th>
-                                    <th>Teplonosná látka</th>
-                                    <th>Poloha</th>
-                                    <th>Interval kontroly</th>
-                                    <th>Datum poslední kontroly</th>
-                                    <th>Datum plánované kontroly</th>
-                                    <th>QR kód</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${customer.exchangers.map(exchanger => `
-                                    <tr>
-                                        <td>${exchanger.registrationNumber}</td>
-                                        <td>${exchanger.manufacturer}</td>
-                                        <td>${exchanger.type}</td>
-                                        <td>${exchanger.productionNumber}</td>
-                                        <td>${exchanger.productionDate}</td>
-                                        <td>${exchanger.heatCarrier}</td>
-                                        <td>${exchanger.location}</td>
-                                        <td>${exchanger.checkInterval}</td>
-                                        <td>${exchanger.lastCheckDate}</td>
-                                        <td>${exchanger.nextCheckDate}</td>
-                                        <td><div class="qr-code-container" data-reg="${exchanger.registrationNumber}"></div></td>
-                                    </tr>
-                                `).join('')}
-                            </tbody>
-                        </table>
-                    `;
-                    exchangersRow.appendChild(exchangersCell);
-                                tableBody.appendChild(exchangersRow);
+               // Přidání řádku pro výměníky
+               if (customer.exchangers && customer.exchangers.length > 0) {
+                   const exchangersRow = document.createElement("tr");
+                   exchangersRow.id = `exchangers-${index}`;
+                   exchangersRow.style.display = "none";  // Skrýt výměníky na začátku
+                   const exchangersCell = document.createElement("td");
+                   exchangersCell.colSpan = 10;
+                   exchangersCell.innerHTML = `
+                       <table>
+                           <thead>
+                               <tr>
+                                   <th class="no-edit">Registrační číslo</th>
+                                   <th>Výrobce</th>
+                                   <th>Typ</th>
+                                   <th>Výrobní číslo</th>
+                                   <th>Datum výroby</th>
+                                   <th>Teplonosná látka</th>
+                                   <th>Poloha</th>
+                                   <th>Interval kontroly</th>
+                                   <th>Datum poslední kontroly</th>
+                                   <th>Datum plánované kontroly</th>
+                                   <th>Poznámka</th>
+                                   <th>QR kód</th>
+                               </tr>
+                           </thead>
+                           <tbody>
+                               ${customer.exchangers.map(exchanger => `
+                                   <tr>
+                                       <td class="no-edit">${exchanger.registrationNumber}</td>
+                                       <td data-id="${exchanger.registrationNumber}" data-field="manufacturer">${exchanger.manufacturer}</td>
+                                       <td data-id="${exchanger.registrationNumber}" data-field="type">${exchanger.type}</td>
+                                       <td data-id="${exchanger.registrationNumber}" data-field="productionNumber">${exchanger.productionNumber}</td>
+                                       <td data-id="${exchanger.registrationNumber}" data-field="productionDate">${exchanger.productionDate}</td>
+                                       <td data-id="${exchanger.registrationNumber}" data-field="heatCarrier">${exchanger.heatCarrier}</td>
+                                       <td data-id="${exchanger.registrationNumber}" data-field="location">${exchanger.location}</td>
+                                       <td data-id="${exchanger.registrationNumber}" data-field="checkInterval">${exchanger.checkInterval}</td>
+                                       <td data-id="${exchanger.registrationNumber}" data-field="lastCheckDate">${exchanger.lastCheckDate}</td>
+                                       <td data-id="${exchanger.registrationNumber}" data-field="nextCheckDate">${exchanger.nextCheckDate}</td>
+                                       <td data-id="${exchanger.registrationNumber}" data-field="note">${exchanger.note || ''}</td>
+                                       <td><div class="qr-code-container" data-reg="${exchanger.registrationNumber}"></div></td>
+                                   </tr>
+                               `).join('')}
+                           </tbody>
+                       </table>
+                   `;
+                   exchangersRow.appendChild(exchangersCell);
+                   tableBody.appendChild(exchangersRow);
 
                                 // Generování QR kódů pro všechny výměníky
                                 customer.exchangers.forEach((exchanger) => {
@@ -365,23 +368,23 @@
         }
 
         // Funkce pro odeslání formuláře zákazníka
-        window.submitCustomerForm = function() {
-            const customerData = {
-                customerID: document.getElementById("customerID").value,
-                name: document.getElementById("customerName").value,
-                city: document.getElementById("customerCity").value,
-                street: document.getElementById("customerStreet").value,
-                ico: document.getElementById("customerIco").value,
-                contactPerson: document.getElementById("customerContact").value,
-                phone: document.getElementById("customerPhone").value,
-                email: document.getElementById("customerEmail").value,
-            };
-            addCustomer(customerData);
-            closeModal('addCustomerModal');
-        };
+                window.submitCustomerForm = function() {
+                    const customerData = {
+                        customerID: document.getElementById("customerID").value,
+                        name: document.getElementById("customerName").value,
+                        city: document.getElementById("customerCity").value,
+                        street: document.getElementById("customerStreet").value,
+                        ico: document.getElementById("customerIco").value,
+                        contactPerson: document.getElementById("customerContact").value,
+                        phone: document.getElementById("customerPhone").value,
+                        email: document.getElementById("customerEmail").value,
+                    };
+                    addCustomer(customerData);
+                    closeModal('addCustomerModal');
+                };
 
-        // Funkce pro odeslání formuláře výměníku
-        window.submitExchangerForm = function() {
+                // Funkce pro odeslání formuláře výměníku
+                window.submitExchangerForm = function() {
             const customerId = document.getElementById("exchangerCustomer").value;
 
             if (!customerId) {
@@ -389,6 +392,7 @@
                 return;  // Pokud není customerId vybrán, přerušíme odeslání formuláře
             }
 
+            // Shromáždění dat z formuláře
             const exchangerData = {
                 registrationNumber: document.getElementById("exchangerRegNumber").value,
                 manufacturer: document.getElementById("exchangerManufacturer").value,
@@ -400,13 +404,69 @@
                 checkInterval: document.getElementById("exchangerCheckInterval").value,
                 lastCheckDate: document.getElementById("exchangerLastCheckDate").value,
                 nextCheckDate: document.getElementById("exchangerNextCheckDate").value,
+                note: document.getElementById("exchangerNote").value
             };
 
-            addExchanger(exchangerData, customerId);  // Předáme customerId
-            closeModal('addExchangerModal');  // Zavření modálního okna
+            // Kontrola, zda je vyplněno registrační číslo
+            if (!exchangerData.registrationNumber) {
+                alert("Registrační číslo musí být vyplněno!");
+                return;
+            }
+
+            // Uložení výměníku pod registrationNumber jako ID do kolekce "customers" -> zákazník -> "exchangers"
+            db.collection("customers")  // Kolekce zákazníků
+                .doc(customerId)  // Dokument zákazníka (ID)
+                .collection("exchangers")  // Kolekce výměníků
+                .doc(exchangerData.registrationNumber)  // ID dokumentu = registrationNumber
+                .set(exchangerData)  // Uložení dat
+                .then(() => {
+                    alert("Výměník úspěšně přidán!");
+                    closeModal("addExchangerModal");  // Zavření modálního okna po přidání
+                    // Znovu načteme výměníky, aby se aktualizovala tabulka
+                    loadExchangersForCustomer(customerId);
+                })
+                .catch(error => {
+                    console.error("Chyba při přidávání výměníku:", error);
+                });
         };
+
+        // Funkce pro editaci buňky po dvojkliku
+         document.addEventListener("DOMContentLoaded", function () {
+               document.querySelectorAll("table").forEach(table => {
+                   table.addEventListener("dblclick", async function (event) {
+                       let target = event.target;
+
+                       // Pokud je buňka označená jako no-edit, neuděláme nic
+                       if (target.tagName === "TD" && !target.classList.contains("no-edit")) {
+                           let originalText = target.innerText;
+                           let newText = prompt("Upravte hodnotu:", originalText);
+
+                           if (newText !== null && newText !== originalText) {
+                               target.innerText = newText;
+
+                               // Načtení ID dokumentu a názvu pole
+                               let id = target.getAttribute("data-id");
+                               let field = target.getAttribute("data-field");
+
+                               try {
+                                   // Odeslání změny do Firestore
+                                   const docRef = doc(db, "customers", id);
+                                   await updateDoc(docRef, { [field]: newText });
+
+                                   console.log("Úspěšně aktualizováno!");
+                               } catch (error) {
+                                   alert("Chyba při ukládání do Firestore.");
+                                   console.error("Chyba:", error);
+                                   target.innerText = originalText; // Pokud dojde k chybě, vrátíme starou hodnotu
+                               }
+                           }
+                       }
+                   });
+               });
+           });
+        
     </script>
-    <style>
+ <style>
         body {
             font-family: Arial, sans-serif;
         }
@@ -459,6 +519,7 @@
             cursor: pointer;
         }
     </style>
+    
 </head>
 
 </html>
