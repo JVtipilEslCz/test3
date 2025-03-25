@@ -368,6 +368,22 @@
         }
 
         // Funkce pro odeslání formuláře zákazníka
+        window.submitCustomerForm = function() {
+            const customerData = {
+                customerID: document.getElementById("customerID").value,
+                name: document.getElementById("customerName").value,
+                city: document.getElementById("customerCity").value,
+                street: document.getElementById("customerStreet").value,
+                ico: document.getElementById("customerIco").value,
+                contactPerson: document.getElementById("customerContact").value,
+                phone: document.getElementById("customerPhone").value,
+                email: document.getElementById("customerEmail").value,
+            };
+            addCustomer(customerData);
+            closeModal('addCustomerModal');
+        };
+        
+        // Funkce pro odeslání formuláře výměníku
                 window.submitExchangerForm = function(event) {
                    if (event) event.preventDefault(); // Zabráníme odeslání formuláře
 
