@@ -416,56 +416,102 @@
                    }
 
                    // Uložení výměníku pod registrationNumber jako ID do kolekce "customers" -> zákazník -> "exchangers"
-                   db.collection("customers")  // Kolekce zákazníků
-                       .doc(customerId)  // Dokument zákazníka (ID)
-                       .collection("exchangers")  // Kolekce výměníků
-                       .doc(exchangerData.registrationNumber)  // ID dokumentu = registrationNumber
-                       .set(exchangerData)  // Uložení dat
-                       .then(() => {
+                   window.submitExchangerForm = async function(event) {
+                       if (event) event.preventDefault(); // Zabráníme odeslání formuláře
+
+                       const customerId = document.getElementById("exchangerCustomer").value;
+
+                       if (!customerId) {
+                           console.error("Chyba: customerId není vybrán!");
+                           return;
+                       }
+
+                       // Shromáždění dat z formuláře
+                       const exchangerData = {
+                           checkInterval: document.getElementById("exchangerCheckInterval").value,
+                           heatCarrier: document.getElementById("exchangerHeatCarrier").value,
+                           lastCheckDate: document.getElementById("exchangerLastCheckDate").value,
+                           location: document.getElementById("exchangerLocation").value,
+                           manufacturer: document.getElementById("exchangerManufacturer").value,
+                           nextCheckDate: document.getElementById("exchangerNextCheckDate").value,
+                           productionDate: document.getElementById("exchangerProdDate").value,
+                           productionNumber: document.getElementById("exchangerProdNumber").value,
+                           registrationNumber: document.getElementById("exchangerRegNumber").value,
+                           type: document.getElementById("exchangerType").value,
+                           note: document.getElementById("exchangerNote").value || ""
+                       };
+
+                       if (!exchangerData.registrationNumber) {
+                           alert("Registrační číslo musí být vyplněno!");
+                           return;
+                       }
+
+                       try {
+                           const customerRef = doc(db, "customers", customerId);
+
+                           // 🔹 Uložíme výměník jako objekt pod `registrationNumber`
+                           await updateDoc(customerRef, {
+                               [`exchangers.${exchangerData.registrationNumber}`]: exchangerData
+                           });
+
                            alert("Výměník úspěšně přidán!");
-                           closeModal("addExchangerModal");  // Zavření modálního okna po přidání
-                           loadCustomers();  // Znovu načteme zákazníky, aby se aktualizovala tabulka
-                       })
-                       .catch(error => {
+                           closeModal("addExchangerModal");  // Zavření modálního okna
+                           loadCustomers();  // Aktualizace tabulky
+
+                       } catch (error) {
                            console.error("Chyba při přidávání výměníku:", error);
-                       });
+                       }
+                   };
                };
 
 
         // Funkce pro editaci buňky po dvojkliku
          document.addEventListener("DOMContentLoaded", function () {
-               document.querySelectorAll("table").forEach(table => {
-                   table.addEventListener("dblclick", async function (event) {
-                       let target = event.target;
+             document.querySelectorAll("table").forEach(table => {
+                 table.addEventListener("dblclick", async function (event) {
+                     let target = event.target;
 
-                       // Pokud je buňka označená jako no-edit, neuděláme nic
-                       if (target.tagName === "TD" && !target.classList.contains("no-edit")) {
-                           let originalText = target.innerText;
-                           let newText = prompt("Upravte hodnotu:", originalText);
+                     // Pokud je buňka označená jako no-edit, neuděláme nic
+                     if (target.tagName === "TD" && !target.classList.contains("no-edit")) {
+                         let originalText = target.innerText;
+                         let newText = prompt("Upravte hodnotu:", originalText);
 
-                           if (newText !== null && newText !== originalText) {
-                               target.innerText = newText;
+                         if (newText !== null && newText !== originalText) {
+                             target.innerText = newText;
 
-                               // Načtení ID dokumentu a názvu pole
-                               let id = target.getAttribute("data-id");
-                               let field = target.getAttribute("data-field");
+                             // Získání ID a pole, které editujeme
+                             let id = target.getAttribute("data-id"); // ID zákazníka nebo výměníku
+                             let field = target.getAttribute("data-field"); // Název pole k úpravě
+                             let row = target.closest("tr"); // Najdeme řádek, ve kterém se buňka nachází
+                             let customerID = row ? row.getAttribute("data-customerid") : null; // ID zákazníka
+                             let registrationNumber = target.getAttribute("data-exchangerid"); // ID výměníku
 
-                               try {
-                                   // Odeslání změny do Firestore
-                                   const docRef = doc(db, "customers", id);
-                                   await updateDoc(docRef, { [field]: newText });
+                             try {
+                                 if (registrationNumber) {
+                                     // 🔹 Upravujeme výměník (je uložen pod zákazníkem)
+                                     const docRef = doc(db, "customers", customerID);
+                                     await updateDoc(docRef, {
+                                         [`exchangers.${registrationNumber}.${field}`]: newText
+                                     });
 
-                                   console.log("Úspěšně aktualizováno!");
-                               } catch (error) {
-                                   alert("Chyba při ukládání do Firestore.");
-                                   console.error("Chyba:", error);
-                                   target.innerText = originalText; // Pokud dojde k chybě, vrátíme starou hodnotu
-                               }
-                           }
-                       }
-                   });
-               });
-           });
+                                     console.log(`✅ Úspěšně aktualizováno: výměník ${registrationNumber}`);
+                                 } else {
+                                     // 🔹 Upravujeme zákazníka (původní funkčnost)
+                                     const docRef = doc(db, "customers", id);
+                                     await updateDoc(docRef, { [field]: newText });
+
+                                     console.log(`✅ Úspěšně aktualizováno: zákazník ${id}`);
+                                 }
+                             } catch (error) {
+                                 alert("❌ Chyba při ukládání do Firestore.");
+                                 console.error("Chyba:", error);
+                                 target.innerText = originalText; // Pokud dojde k chybě, vrátíme starou hodnotu
+                             }
+                         }
+                     }
+                 });
+             });
+         });
         
     </script>
  <style>
