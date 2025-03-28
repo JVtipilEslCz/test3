@@ -94,7 +94,7 @@
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.4.4/build/qrcode.min.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-app.js";
-        import { getFirestore, collection, getDocs, addDoc } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js";
+        import { getFirestore, collection, getDocs, addDoc, getDoc } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js";
         import { doc, updateDoc, arrayUnion } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js";
         import { setDoc } from "https://www.gstatic.com/firebasejs/11.4.0/firebase-firestore.js";
 
@@ -149,7 +149,6 @@
         // Načtení dat po načtení stránky
         window.onload = function() {
             loadCustomers();
-            loadExchangers();
             loadCustomerOptions();
         };
 
@@ -293,6 +292,7 @@
             document.getElementById("exchangerCheckInterval").value = "";
             document.getElementById("exchangerLastCheckDate").value = "";
             document.getElementById("exchangerNextCheckDate").value = "";
+            document.getElementById("exchangerNote").value = "";
         }
         // Funkce pro zobrazení modálního okna pro přidání výměníku
         window.openAddExchangerModal = function() {
@@ -358,53 +358,69 @@
               }
           }; // Zde je uzavření funkce      
 
-        // Funkce pro editaci buňky po dvojkliku
-         document.addEventListener("DOMContentLoaded", function () {
-             document.querySelectorAll("table").forEach(table => {
-                 table.addEventListener("dblclick", async function (event) {
-                     let target = event.target;
+       // Funkce pro editaci buňky po dvojkliku - nutno odtabulátorovat
+      document.addEventListener("DOMContentLoaded", function () {
+    document.querySelectorAll("table").forEach(table => {
+        table.addEventListener("dblclick", async function (event) {
+            let target = event.target;
+            if (target.tagName === "TD" && !target.classList.contains("no-edit")) {
+                let originalText = target.innerText;
+                let newText = prompt("Upravte hodnotu:", originalText);
+                if (newText !== null && newText !== originalText) {
+                    target.innerText = newText;
+                    let id = target.getAttribute("data-id");
+                    let field = target.getAttribute("data-field");
+                    let row = target.closest("tr");
+                    let customerID = row ? row.getAttribute("data-customerid") : null;
+                    let registrationNumber = row ? row.getAttribute("data-exchangerid") : null;
+                    if (registrationNumber) {
+                        // Volání funkce pro úpravu výměníku
+                        await updateExchanger(customerID, registrationNumber, field, newText, target, originalText);
+                    } else {
+                        // Volání funkce pro úpravu zákazníka
+                        await updateCustomer(id, field, newText, target, originalText);
+                    }
+                }
+            }
+        });
+    });
+});
 
-                     // Pokud je buňka označená jako no-edit, neuděláme nic
-                     if (target.tagName === "TD" && !target.classList.contains("no-edit")) {
-                         let originalText = target.innerText;
-                         let newText = prompt("Upravte hodnotu:", originalText);
+// Funkce pro úpravu zákazníka
+async function updateCustomer(id, field, newText, target, originalText) {
+    try {
+        const docRef = doc(db, "customers", id);
+        const docSnapshot = await getDoc(docRef);
+        if (docSnapshot.exists()) {
+            await updateDoc(docRef, { [field]: newText });
+            console.log(`✅ Úspěšně aktualizováno: zákazník ${id}`);
+        } else {
+            console.error(`❌ Chyba: Dokument s ID ${id} neexistuje.`);
+        }
+    } catch (error) {
+        alert("❌ Chyba při ukládání do Firestore.");
+        console.error("Chyba:", error);
+        target.innerText = originalText;
+    }
+}
 
-                         if (newText !== null && newText !== originalText) {
-                             target.innerText = newText;
-
-                             // Získání ID a pole, které editujeme
-                             let id = target.getAttribute("data-id"); // ID zákazníka nebo výměníku
-                             let field = target.getAttribute("data-field"); // Název pole k úpravě
-                             let row = target.closest("tr"); // Najdeme řádek, ve kterém se buňka nachází
-                             let customerID = row ? row.getAttribute("data-customerid") : null; // ID zákazníka
-                             let registrationNumber = target.getAttribute("data-exchangerid"); // ID výměníku
-
-                             try {
-                                 if (registrationNumber) {
-                                     // 🔹 Upravujeme výměník (je uložen pod zákazníkem)
-                                     const docRef = doc(db, "customers", customerID);
-                                     await updateDoc(docRef, {
-                                         [`exchangers.${registrationNumber}.${field}`]: newText
-                                     });
-
-                                     console.log(`✅ Úspěšně aktualizováno: výměník ${registrationNumber}`);
-                                 } else {
-                                     // 🔹 Upravujeme zákazníka (původní funkčnost)
-                                     const docRef = doc(db, "customers", id);
-                                     await updateDoc(docRef, { [field]: newText });
-
-                                     console.log(`✅ Úspěšně aktualizováno: zákazník ${id}`);
-                                 }
-                             } catch (error) {
-                                 alert("❌ Chyba při ukládání do Firestore.");
-                                 console.error("Chyba:", error);
-                                 target.innerText = originalText; // Pokud dojde k chybě, vrátíme starou hodnotu
-                             }
-                         }
-                     }
-                 });
-             });
-         });
+// Funkce pro úpravu výměníku
+async function updateExchanger(customerID, registrationNumber, field, newText, target, originalText) {
+    try {
+        const docRef = doc(db, "customers", customerID, "exchangers", registrationNumber);
+        const docSnapshot = await getDoc(docRef);
+        if (docSnapshot.exists()) {
+            await updateDoc(docRef, { [field]: newText });
+            console.log(`✅ Úspěšně aktualizováno: výměník ${registrationNumber}`);
+        } else {
+            console.error(`❌ Chyba: Dokument s ID ${registrationNumber} neexistuje.`);
+        }
+    } catch (error) {
+        alert("❌ Chyba při ukládání do Firestore.");
+        console.error("Chyba:", error);
+        target.innerText = originalText;
+    }
+}
         
     </script>
  <style>
