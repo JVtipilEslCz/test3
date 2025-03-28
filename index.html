@@ -113,13 +113,45 @@
         const db = getFirestore(app);
 
         // Funkce pro načtení zákazníků
-        
-       async function loadCustomers() {
-           const customersCol = collection(db, "customers");
-           const customerSnapshot = await getDocs(customersCol);
-           const customersList = customerSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-           displayCustomers(customersList);
-       }
+        async function loadCustomers() {
+            const customersCol = collection(db, "customers");
+            const customerSnapshot = await getDocs(customersCol);
+            const customersList = customerSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            displayCustomers(customersList);
+        }
+
+        // Funkce pro načtení možností zákazníků
+        async function loadCustomerOptions() {
+            const customersCol = collection(db, "customers");
+            const customerSnapshot = await getDocs(customersCol);
+            const customers = customerSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+            const select = document.getElementById("exchangerCustomer");
+            select.innerHTML = customers.map(c => `<option value="${c.id}">${c.name}</option>`).join('');
+        }
+
+        // Funkce pro přidání nového zákazníka
+        async function addCustomer(customerData) {
+            if (!customerData.customerID) {
+                console.error("Chyba: ID zákazníka musí být vyplněno!");
+                return;
+            }
+            const customerRef = doc(db, "customers", customerData.customerID);
+
+            try {
+                await setDoc(customerRef, customerData);
+                loadCustomers();
+                loadCustomerOptions(); // Volání funkce pro načtení možností zákazníků
+            } catch (error) {
+                console.error("Chyba při přidávání zákazníka:", error);
+            }
+        }
+
+        // Načtení dat po načtení stránky
+        window.onload = function() {
+            loadCustomers();
+            loadExchangers();
+            loadCustomerOptions();
+        };
 
        // Funkce pro zobrazení zákazníků
        function displayCustomers(customers) {
@@ -220,14 +252,8 @@
                    });
            });
        }
-
-       // Načtení dat po načtení stránky
-       window.onload = function() {
-           loadCustomers();
-       };
-      
-
-        // Funkce pro přepínání zobrazení výměníků
+        
+       // Funkce pro přepínání zobrazení výměníků
         window.toggleExchangers = function(customerID) {
             const exchangersRow = document.getElementById(`exchangers-${customerID}-container`);
             console.log(`Hledám ID: exchangers-${customerID}`, exchangersRow);
