@@ -158,6 +158,7 @@
            tableBody.innerHTML = ''; // Vymazání starých dat
            customers.forEach((customer) => {
                const row = document.createElement("tr");
+               row.setAttribute("data-customerid", customer.id); // Přidání atributu data-customerid
                row.innerHTML = `
                    <td><button class="toggle-btn" data-customerid="${customer.id}" onclick="toggleExchangers('${customer.id}')">▼</button></td>
                    <td class="no-edit">${customer.customerID}</td>
@@ -206,6 +207,7 @@
            });
        }
 
+
        // Funkce pro načtení výměníků pro konkrétního zákazníka
        async function loadExchangers(customerId) {
            const exchangersCol = collection(db, "customers", customerId, "exchangers");
@@ -220,6 +222,8 @@
            tableBody.innerHTML = ''; // Vymazání starých dat
            exchangers.forEach((exchanger) => {
                const row = document.createElement("tr");
+               row.setAttribute("data-exchangerid", exchanger.registrationNumber); // Přidání registračního čísla
+               row.setAttribute("data-customerid", customerId); // Přidání zákaznického ID
                row.innerHTML = `
                    <td class="no-edit">${exchanger.registrationNumber}</td>
                    <td data-id="${exchanger.registrationNumber}" data-field="manufacturer">${exchanger.manufacturer}</td>
@@ -358,69 +362,81 @@
               }
           }; // Zde je uzavření funkce      
 
-       // Funkce pro editaci buňky po dvojkliku - nutno odtabulátorovat
-      document.addEventListener("DOMContentLoaded", function () {
-    document.querySelectorAll("table").forEach(table => {
-        table.addEventListener("dblclick", async function (event) {
-            let target = event.target;
-            if (target.tagName === "TD" && !target.classList.contains("no-edit")) {
-                let originalText = target.innerText;
-                let newText = prompt("Upravte hodnotu:", originalText);
-                if (newText !== null && newText !== originalText) {
-                    target.innerText = newText;
-                    let id = target.getAttribute("data-id");
-                    let field = target.getAttribute("data-field");
-                    let row = target.closest("tr");
-                    let customerID = row ? row.getAttribute("data-customerid") : null;
-                    let registrationNumber = row ? row.getAttribute("data-exchangerid") : null;
-                    if (registrationNumber) {
-                        // Volání funkce pro úpravu výměníku
-                        await updateExchanger(customerID, registrationNumber, field, newText, target, originalText);
-                    } else {
-                        // Volání funkce pro úpravu zákazníka
-                        await updateCustomer(id, field, newText, target, originalText);
-                    }
+       // Funkce pro editaci buňky po dvojkliku
+       document.addEventListener("DOMContentLoaded", function () {
+           document.querySelectorAll("table").forEach(table => {
+               table.addEventListener("dblclick", async function (event) {
+                   let target = event.target;
+                   if (target.tagName === "TD" && !target.classList.contains("no-edit")) {
+                       let originalText = target.innerText;
+                       let newText = prompt("Upravte hodnotu:", originalText);
+                       if (newText !== null && newText !== originalText) {
+                           target.innerText = newText;
+                           let id = target.getAttribute("data-id");
+                           let field = target.getAttribute("data-field");
+                           let row = target.closest("tr");
+
+                           let customerID = row.getAttribute("data-customerid"); // Nově získáme přímo z řádku
+                           let registrationNumber = row.getAttribute("data-exchangerid");
+
+                           console.log("DEBUG:");
+                           console.log("Target row:", row);
+                           console.log("customerID:", customerID);
+                           console.log("registrationNumber:", registrationNumber);
+
+                           if (registrationNumber && customerID) {
+                               console.log(`Upravujete výměník s registračním číslem: ${registrationNumber}`);
+                               await updateExchanger(customerID, registrationNumber, field, newText, target, originalText);
+                           } else if (customerID) {
+                               console.log(`Upravujete zákazníka s ID: ${customerID}`);
+                               await updateCustomer(id, field, newText, target, originalText);
+                           } else {
+                               console.log("Upravujete neznámý prvek.");
+                           }
+                       }
+                   }
+               });
+           });
+       });
+
+        // Funkce pro úpravu zákazníka
+        async function updateCustomer(id, field, newText, target, originalText) {
+            try {
+                const docRef = doc(db, "customers", id);
+                const docSnapshot = await getDoc(docRef);
+                if (docSnapshot.exists()) {
+                    await updateDoc(docRef, { [field]: newText });
+                    console.log(`✅ Úspěšně aktualizováno: zákazník ${id}`);
+                } else {
+                    console.error(`❌ Chyba: Dokument s ID ${id} neexistuje.`);
                 }
+            } catch (error) {
+                alert("❌ Chyba při ukládání do Firestore.");
+                console.error("Chyba:", error);
+                target.innerText = originalText;
             }
-        });
-    });
-});
-
-// Funkce pro úpravu zákazníka
-async function updateCustomer(id, field, newText, target, originalText) {
-    try {
-        const docRef = doc(db, "customers", id);
-        const docSnapshot = await getDoc(docRef);
-        if (docSnapshot.exists()) {
-            await updateDoc(docRef, { [field]: newText });
-            console.log(`✅ Úspěšně aktualizováno: zákazník ${id}`);
-        } else {
-            console.error(`❌ Chyba: Dokument s ID ${id} neexistuje.`);
         }
-    } catch (error) {
-        alert("❌ Chyba při ukládání do Firestore.");
-        console.error("Chyba:", error);
-        target.innerText = originalText;
-    }
-}
 
-// Funkce pro úpravu výměníku
-async function updateExchanger(customerID, registrationNumber, field, newText, target, originalText) {
-    try {
-        const docRef = doc(db, "customers", customerID, "exchangers", registrationNumber);
-        const docSnapshot = await getDoc(docRef);
-        if (docSnapshot.exists()) {
-            await updateDoc(docRef, { [field]: newText });
-            console.log(`✅ Úspěšně aktualizováno: výměník ${registrationNumber}`);
-        } else {
-            console.error(`❌ Chyba: Dokument s ID ${registrationNumber} neexistuje.`);
+        // Funkce pro úpravu výměníku
+        async function updateExchanger(customerID, registrationNumber, field, newText, target, originalText) {
+            try {
+                if (!customerID || !registrationNumber) {
+                    throw new Error("customerID nebo registrationNumber není definován.");
+                }
+                const docRef = doc(db, "customers", customerID, "exchangers", registrationNumber);
+                const docSnapshot = await getDoc(docRef);
+                if (docSnapshot.exists()) {
+                    await updateDoc(docRef, { [field]: newText });
+                    console.log(`✅ Úspěšně aktualizováno: výměník ${registrationNumber}`);
+                } else {
+                    console.error(`❌ Chyba: Dokument s ID ${registrationNumber} neexistuje.`);
+                }
+            } catch (error) {
+                alert("❌ Chyba při ukládání do Firestore.");
+                console.error("Chyba:", error);
+                target.innerText = originalText;
+            }
         }
-    } catch (error) {
-        alert("❌ Chyba při ukládání do Firestore.");
-        console.error("Chyba:", error);
-        target.innerText = originalText;
-    }
-}
         
     </script>
  <style>
