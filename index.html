@@ -39,7 +39,8 @@
                 <label for="customerStreet">Ulice:</label><br>
                 <input type="text" id="customerStreet"><br>
                 <label for="customerIco">IČO:</label><br>
-                <input type="text" id="customerIco"><br>
+                <input type="text" id="customerIco">
+                <button type="button" onclick="fetchCompanyData()">Načíst z ARES</button><br>
                 <label for="customerContact">Kontaktní osoba:</label><br>
                 <input type="text" id="customerContact"><br>
                 <label for="customerPhone">Telefon:</label><br>
@@ -50,6 +51,7 @@
             </form>
         </div>
     </div>
+
 
     <!-- Modální okno pro přidání výměníku -->
     <div id="addExchangerModal" class="modal">
@@ -146,6 +148,96 @@
             }
         }
 
+        // Funkce pro vygenerování ID zákazníka
+        async function generateCustomerID() {
+            const currentYear = new Date().getFullYear();
+            const yearSuffix = currentYear.toString().slice(-2); // Poslední dvě číslice roku
+    
+            // Získání počtu zákazníků pouze z aktuálního roku
+            const customersCol = collection(db, "customers");
+            const customerSnapshot = await getDocs(customersCol);
+            const customersThisYear = customerSnapshot.docs.filter(doc => doc.id.startsWith(`SVY${yearSuffix}`));
+            const customerCount = customersThisYear.length + 1; // Pořadí zákazníka v daném roce
+    
+            const customerID = `SVY${yearSuffix}${customerCount.toString().padStart(2, '0')}`;
+            return customerID;
+        }
+
+       // Funkce pro zobrazení modálního okna pro přidání zákazníka
+       window.openAddCustomerModal = async function() {
+           const customerID = await generateCustomerID();
+           document.getElementById("customerID").value = customerID; // Předvyplnění ID zákazníka
+           document.getElementById("addCustomerModal").style.display = "block";
+       }
+
+       // Funkce pro zavření modálního okna
+       window.closeModal = function(modalId) {
+           document.getElementById(modalId).style.display = "none";
+       }
+
+       // Funkce pro načtení údajů z ARES podle IČO
+       window.fetchCompanyData = async function() {
+           const ico = document.getElementById("customerIco").value.trim();
+           if (!ico) {
+               alert("Vyplňte IČO.");
+               return;
+           }
+
+           try {
+               const response = await fetch(`https://ares.gov.cz/ekonomicke-subjekty-v-be/rest/ekonomicke-subjekty/${ico}`);
+               if (!response.ok) {
+                   throw new Error("Nepodařilo se získat údaje.");
+               }
+        
+               const data = await response.json();
+               console.log("Odpověď z ARES:", data); // Výpis celé odpovědi pro diagnostiku
+               if (data && data.obchodniJmeno) {
+                   document.getElementById("customerName").value = data.obchodniJmeno;
+                   document.getElementById("customerCity").value = data.sidlo.nazevObce || "";
+
+                   // Pokud není název ulice (data.sidlo.nazevUlice), vypíše se pouze číslo domu (cisloDomovni)
+                   if (data.sidlo.nazevUlice) {
+                      document.getElementById("customerStreet").value = data.sidlo.nazevUlice + " " + (data.sidlo.cisloDomovni || "") + "/" + (data.sidlo.cisloOrientacni || "");
+                   } else {
+                       document.getElementById("customerStreet").value = "č.p.: " + (data.sidlo.cisloDomovni || "");
+                   }
+               } else {
+                   alert("Nebyla nalezena žádná data pro zadané IČO.");
+               }
+           } catch (error) {
+               console.error("Chyba při načítání dat z ARES:", error);
+               alert("Chyba při načítání údajů. Zkontrolujte IČO a zkuste to znovu.");
+           }
+       }
+
+        
+       // Funkce pro odeslání formuláře zákazníka
+       window.submitCustomerForm = async function() {
+           const customerData = {
+               customerID: document.getElementById("customerID").value,
+               name: document.getElementById("customerName").value,
+               city: document.getElementById("customerCity").value,
+               street: document.getElementById("customerStreet").value,
+               ico: document.getElementById("customerIco").value,
+               contactPerson: document.getElementById("customerContact").value,
+               phone: document.getElementById("customerPhone").value,
+               email: document.getElementById("customerEmail").value,
+           };
+
+           // Kontrola, zda IČO již existuje v tabulce
+               const tableRows = document.querySelectorAll("#customers-body tr");
+               for (let row of tableRows) {
+                   const icoCell = row.querySelector("td:nth-child(6)"); // IČO je v šestém sloupci
+                   if (icoCell && icoCell.innerText.trim() === customerData.ico) {
+                       alert("Zákazník s tímto IČO již existuje!");
+                       return; // Přeruší odeslání formuláře
+                   }
+               }
+
+           await addCustomer(customerData); // Počká na dokončení přidání zákazníka
+           closeModal('addCustomerModal');
+       };
+        
         // Načtení dat po načtení stránky
         window.onload = function() {
             loadCustomers();
@@ -279,11 +371,6 @@
             }
         };
 
-        // Funkce pro zobrazení modálního okna pro přidání zákazníka
-        window.openAddCustomerModal = function() {
-            document.getElementById("addCustomerModal").style.display = "block";
-        }
-
         // Funkce pro vyprázdnění formuláře
         function clearExchangerForm() {
             document.getElementById("exchangerRegNumber").value = "";
@@ -309,22 +396,7 @@
             document.getElementById(modalId).style.display = "none";
         }
 
-        // Funkce pro odeslání formuláře zákazníka
-        window.submitCustomerForm = function() {
-            const customerData = {
-                customerID: document.getElementById("customerID").value,
-                name: document.getElementById("customerName").value,
-                city: document.getElementById("customerCity").value,
-                street: document.getElementById("customerStreet").value,
-                ico: document.getElementById("customerIco").value,
-                contactPerson: document.getElementById("customerContact").value,
-                phone: document.getElementById("customerPhone").value,
-                email: document.getElementById("customerEmail").value,
-            };
-            addCustomer(customerData);
-            closeModal('addCustomerModal');
-        };
-        
+       
         // Funkce pro odeslání formuláře výměníku
           window.submitExchangerForm = async function(event) {
               if (event) event.preventDefault(); // Zabráníme odeslání formuláře
